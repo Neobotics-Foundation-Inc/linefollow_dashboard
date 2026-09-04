@@ -28,7 +28,6 @@
   .card { background: var(--white); border: 1px solid var(--steel); border-radius: 12px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 6px 18px rgba(29, 29, 39, 0.08); }
   .card h2 { font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif; font-size: 1rem; color: var(--tarmac); margin-bottom: 0.5rem; }
   .card h3 { font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif; font-size: 0.85rem; color: var(--tarmac); margin-top: 0.9rem; padding-bottom: 0.2rem; border-bottom: 1px solid var(--steel); }
-  .card h3 span { color: rgba(29, 29, 39, 0.5); font-weight: normal; margin-left: 0.4rem; }
   .view { background: var(--tarmac); border-radius: 6px; width: 100%; max-width: 560px; height: auto; display: block; aspect-ratio: 4 / 3; object-fit: contain; }
   canvas { background: var(--tarmac); border-radius: 6px; width: 100%; height: auto; display: block; }
   label { display: block; color: rgba(29, 29, 39, 0.6); font-size: 0.8rem; margin-top: 0.6rem; }
@@ -38,7 +37,6 @@
   button, select { background: var(--white); border: 1px solid var(--tarmac); color: var(--tarmac); font-family: inherit; padding: 0.35rem 0.8rem; border-radius: 6px; margin: 0.8rem 0.4rem 0 0; cursor: pointer; }
   button:hover { background: var(--steel); }
   .readout { font-size: 0.85rem; margin-top: 0.5rem; white-space: pre-line; }
-  .hint { font-size: 0.75rem; color: rgba(29, 29, 39, 0.5); margin-top: 0.2rem; }
   /* Whether the line is in the band, the one thing readable from across the room. */
   .state { font-family: 'Space Grotesk', 'Helvetica Neue', sans-serif; font-size: 1.35rem;
            color: var(--white); background: var(--tarmac); border-radius: 8px;
@@ -83,21 +81,17 @@
 <div class="grid">
   <div class="card">
     <h2>Camera</h2>
-    <img id="color" class="view" alt="color view">
-    <div class="readout" id="camdetail">gold box: crop band &bull; red: largest contour and its center &bull; grey: setpoint</div>
+    <img id="color" class="view" alt="color view" title="Gold box: crop band. Red: largest contour and its center. Grey: setpoint.">
   </div>
   <div class="card">
     <h2>Mask</h2>
-    <img id="mask" class="view" alt="mask view">
-    <div class="readout">white: inside the HSV range &bull; only the gold band is searched for the line</div>
+    <img id="mask" class="view" alt="mask view" title="White: inside the HSV range. Only the gold band is searched for the line.">
   </div>
   <div class="card">
     <h2>State</h2>
-    <div class="state" id="state">LINE FOUND</div>
-    <div class="readout" id="why"></div>
+    <div class="state" id="state"></div>
     <h3>Line offset vs setpoint (live)</h3>
-    <canvas id="chart" width="420" height="160"></canvas>
-    <div class="hint">-1 is the left edge of the frame, +1 the right. A flat trace at 0 is a stable follower; a growing zigzag is too much angle_kp or too little angle_kd.</div>
+    <canvas id="chart" width="420" height="160" title="-1 is the left edge of the frame, +1 the right. A flat trace at 0 is a stable follower; a growing zigzag is too much angle_kp or too little angle_kd."></canvas>
   </div>
 </div>
 
@@ -105,29 +99,26 @@
   <h2>Tune</h2>
   <div class="tunecols">
     <div>
-      <h3>1. HSV threshold <span>hue 0..179, saturation and value 0..255</span></h3>
+      <h3 title="Hue 0..179, saturation and value 0..255. Drag the two thumbs of each bar. A hue low above its high wraps through 0, which is how red is selected.">1. HSV threshold</h3>
       <div id="hsvform"></div>
-      <div class="hint">Drag the two thumbs of each bar. A hue low above its high wraps through 0, which is how red is selected.</div>
     </div>
     <div>
-      <h3>2. Speed and angle</h3>
+      <h3 title="Constant throttle and the proportional steering gain.">2. Speed and angle</h3>
       <div id="driveform"></div>
     </div>
     <div>
-      <h3>3. Crop band <span>fraction of the frame from the top</span></h3>
+      <h3 title="Fractions of the frame from the top. Move both edges together to look higher or lower; spread them to take in more floor.">3. Crop band</h3>
       <div id="cropform"></div>
-      <div class="hint">Move both edges together to look higher or lower; spread them to take in more floor.</div>
+      <label title="Smallest contour, in pixels, that counts as the line. Raise it to ignore specks.">min_area
+        <input id="in_min_area" type="number" step="1" min="1" onchange="post('/params', {min_area: parseInt(this.value)})"></label>
     </div>
     <div>
-      <h3>4. Proportional speed and derivative angle</h3>
+      <h3 title="speed_kp slows the car as the line drifts from center; angle_kd damps the steering on the change in offset.">4. Proportional speed and derivative angle</h3>
       <div id="pdform"></div>
-      <label>min_area (smallest contour that counts, px)
-        <input id="in_min_area" type="number" step="1" min="1" onchange="post('/params', {min_area: parseInt(this.value)})"></label>
     </div>
   </div>
   <button onclick="post('/save')">Save</button>
   <button onclick="reset()">Load</button>
-  <div class="readout" id="detail"></div>
 </div>
 
 <div class="card">
@@ -143,23 +134,23 @@
 // Single-thumb trackbars, in the order each group shows them.
 const SLIDERS = {
   driveform: [
-    { key: 'speed', label: 'speed', unit: '0 to 1 throttle', min: 0, max: 1, step: 0.01 },
-    { key: 'angle_kp', label: 'angle_kp', unit: 'steer per unit offset', min: 0, max: 4, step: 0.01 },
+    { key: 'speed', label: 'speed', tip: '0 to 1 throttle', min: 0, max: 1, step: 0.01 },
+    { key: 'angle_kp', label: 'angle_kp', tip: 'steer per unit offset', min: 0, max: 4, step: 0.01 },
   ],
   cropform: [
-    { key: 'crop_top', label: 'crop_top', unit: 'top edge', min: 0, max: 1, step: 0.01 },
-    { key: 'crop_bottom', label: 'crop_bottom', unit: 'bottom edge', min: 0, max: 1, step: 0.01 },
+    { key: 'crop_top', label: 'crop_top', tip: 'top edge, 0 to 1 of the frame from the top', min: 0, max: 1, step: 0.01 },
+    { key: 'crop_bottom', label: 'crop_bottom', tip: 'bottom edge, 0 to 1 of the frame from the top', min: 0, max: 1, step: 0.01 },
   ],
   pdform: [
-    { key: 'speed_kp', label: 'speed_kp', unit: 'throttle drop per unit |offset|; 0 = constant', min: 0, max: 1, step: 0.01 },
-    { key: 'angle_kd', label: 'angle_kd', unit: 'damper on the change in offset', min: 0, max: 2, step: 0.01 },
+    { key: 'speed_kp', label: 'speed_kp', tip: 'throttle drop per unit |offset|; 0 = constant speed', min: 0, max: 1, step: 0.01 },
+    { key: 'angle_kd', label: 'angle_kd', tip: 'damper on the change in offset', min: 0, max: 2, step: 0.01 },
   ],
 };
 // Two-thumb bars: one per HSV channel.
 const DUALS = [
-  { lo: 'h_low', hi: 'h_high', label: 'hue', max: 179, cls: 'hue' },
-  { lo: 's_low', hi: 's_high', label: 'saturation', max: 255, cls: '' },
-  { lo: 'v_low', hi: 'v_high', label: 'value', max: 255, cls: '' },
+  { lo: 'h_low', hi: 'h_high', label: 'hue', tip: '0 to 179; low above high wraps through 0 for red', max: 179, cls: 'hue' },
+  { lo: 's_low', hi: 's_high', label: 'saturation', tip: '0 to 255; raise the low to drop grey and white', max: 255, cls: '' },
+  { lo: 'v_low', hi: 'v_high', label: 'value', tip: '0 to 255; raise the low to drop shadow, lower the high to drop glare', max: 255, cls: '' },
 ];
 
 let last = null;
@@ -219,8 +210,8 @@ function buildForm(p) {
   if (anchor.dataset.built) return;
   anchor.dataset.built = '1';
   anchor.innerHTML = DUALS.map(d => `
-    <label>${d.label} <b id="val_${d.lo}"></b></label>
-    <div class="dual">
+    <label title="${d.tip}">${d.label} <b id="val_${d.lo}"></b></label>
+    <div class="dual" title="${d.tip}">
       <div class="track ${d.cls}"></div>
       <div class="fill" id="fill_${d.lo}" style="color: var(--red)"></div>
       <input id="in_${d.lo}" type="range" min="0" max="${d.max}" step="1" value="${p[d.lo]}">
@@ -234,7 +225,7 @@ function buildForm(p) {
   }
   for (const [form, list] of Object.entries(SLIDERS)) {
     document.getElementById(form).innerHTML = list.map(s => `
-      <label>${s.label} (${s.unit}) <b id="val_${s.key}">${p[s.key]}</b>
+      <label title="${s.tip}">${s.label} <b id="val_${s.key}">${p[s.key]}</b>
         <input id="in_${s.key}" type="range" min="${s.min}" max="${s.max}" step="${s.step}" value="${p[s.key]}"></label>`).join('');
     for (const s of list) {
       document.getElementById(`in_${s.key}`).oninput = e => {
@@ -368,21 +359,14 @@ function update() {
     const box = document.getElementById('state');
     box.textContent = d.found ? 'LINE FOUND' : 'LINE LOST';
     box.className = 'state' + (d.found ? '' : ' lost');
-    const p = d.params;
-    document.getElementById('why').textContent = d.found
-      ? `Center at column ${d.cx} of ${d.proc_res[0]}, row ${d.cy}; area ${d.area} px. `
-        + `Steer ${d.steer}, throttle ${d.speed_cmd}.`
-      : `No contour of at least ${p.min_area} px in the band for `
-        + `${d.lost_for === null ? 'the whole run' : d.lost_for + ' s'}. `
-        + `Holding steer ${d.steer}, throttle ${d.speed_cmd}.`;
+    // What the box would have said in words is on hover instead.
+    box.title = d.found
+      ? `Center at column ${d.cx} of ${d.proc_res[0]}, row ${d.cy}; area ${d.area} px.`
+      : `No contour of at least ${d.params.min_area} px in the band for `
+        + `${d.lost_for === null ? 'the whole run' : d.lost_for + ' s'}; holding the last command.`;
 
-    buildForm(p);
-    syncForm(p);
-    document.getElementById('detail').textContent =
-      `HSV (${p.h_low}, ${p.s_low}, ${p.v_low}) to (${p.h_high}, ${p.s_high}, ${p.v_high}) | `
-      + `band rows ${Math.round(p.crop_top * d.proc_res[1])} to ${Math.round(p.crop_bottom * d.proc_res[1])} | `
-      + `steer = ${p.angle_kp} * offset + ${p.angle_kd} * d(offset) | `
-      + `throttle = ${p.speed} * (1 - ${p.speed_kp} * |offset|)`;
+    buildForm(d.params);
+    syncForm(d.params);
     // The offset is already -1..1, so the axis is fixed rather than fit to
     // the data: a small wobble looks small.
     drawSeries('chart', [{ pts: d.hist, color: '#FF0033', fixed: 1 }],

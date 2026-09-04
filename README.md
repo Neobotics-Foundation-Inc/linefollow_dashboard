@@ -73,15 +73,17 @@ Top row, the two views side by side at the same width, then the state box across
 
 - Camera view: the color frame after the resize, with the crop band in gold, the winning contour and its center in red, a red tie from the center line to the contour center, and the grey setpoint line down the middle.
 - Mask view: black and white, the whole frame, so the threshold can be judged on everything in view rather than only the band. The band is outlined in gold; only what is inside it is searched.
-- State box: LINE FOUND (blue) or LINE LOST (red), the center's column and row, the contour area, and the command being sent.
+- State box: LINE FOUND (blue) or LINE LOST (red). Hover it for the center's column and row and the contour area, or for how long the line has been lost.
 
 The state box carries the live offset chart under it: the line's position from -1 (left edge) to +1 (right edge) against a dashed setpoint at 0, on a fixed axis so a small wobble looks small. The strip along the bottom is red where the line was lost. Yellow markers land at every parameter change. The chart is drawn from an even sample of the history rather than every frame; the saved csv keeps all of them.
+
+The page shows only names and numbers; every explanation is a tooltip. Hover a view, the chart, a group heading, or a trackbar to read what it does and what range it takes.
 
 Second row, full width, the four trackbar groups in the order they are tuned:
 
 1. HSV threshold: three two-thumb bars, one each for hue, saturation, and value. The hue bar's track is the hue wheel, so the thumbs sit on the color they select.
 2. Speed and angle: the constant throttle and the proportional steering gain.
-3. Crop band: the top and bottom edges of the band, as fractions of the frame from the top. Move both to look higher or lower on the floor; spread them to take in more of it.
+3. Crop band: the top and bottom edges of the band, as fractions of the frame from the top. Move both to look higher or lower on the floor; spread them to take in more of it. `min_area`, the smallest contour that counts as the line, sits here too.
 4. Proportional speed and derivative angle: `speed_kp` bleeds throttle off as the line drifts from center, `angle_kd` damps the steering on the change in offset.
 
 Every trackbar applies live while it is dragged; the service coalesces the stream of values into one marker on the chart. Save and Load write and read linefollow.yaml on the car. Reset (top bar) re-reads the yaml. STOP (top bar) sets speed to 0.
